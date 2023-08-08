@@ -1,0 +1,44 @@
+trigger:
+- main
+
+variables:
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+  # Variáveis para manipulação do package
+  Project_Path: './ShowGroffeNameAzDevOps'
+  Project_File: 'ShowGroffeNameAzDevOps.csproj'
+  NuGet_Feed: 'TestesFeed01'
+  Package_Path: './out'
+
+stages:
+- stage: PackPush
+  displayName: Pack and Push stage
+  jobs:
+  - job: PackPush
+    displayName: Pack and Push
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - script: |
+        echo '*** SDKs do .NET intalados ***'
+        dotnet --list-sdks
+      displayName: Exibir versoes instaladas do .NET SDK
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'restore'
+        projects: '$(Project_Path)/$(Project_File)'
+        feedsToUse: 'config'
+        nugetConfigPath: '$(Project_Path)/nuget.config'
+      displayName: Efetuar restore de dependencias (utilizando configuracoes do Feed NuGet privado)
+    - script: |
+        cd $(Project_Path)
+        dotnet pack --no-restore $(Project_File) -c Release -o $(Package_Path)
+      displayName: Gerar package da Global Tool
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'push'
+        packagesToPush: '$(Project_Path)/$(Package_Path)/*.nupkg'
+        nuGetFeedType: 'internal'
+        publishVstsFeed: '5cc36437-3eeb-42dd-a5cd-375fdd8af4eb'
+      displayName: Efetuar push do package
